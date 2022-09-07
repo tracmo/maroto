@@ -24,6 +24,12 @@ func main() {
 		m.Col(6, func() {
 			m.Text("Any Text3")
 		})
+		m.Col(10, func() {
+			m.Text("Any Text4")
+		})
+		m.Col(14, func() {
+			m.Text("Any Text5")
+		})
 	})
 
 	err := m.OutputFileAndClose("internal/examples/pdfs/textgrid.pdf")
