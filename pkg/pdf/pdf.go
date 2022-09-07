@@ -43,6 +43,9 @@ type Maroto interface {
 	DataMatrixCode(code string, prop ...props.Rect)
 	Signature(label string, prop ...props.Font)
 
+	// New Helper by JL
+	CalcTextHeight(width uint, text string, prop ...props.Text) float64
+
 	// File System
 	OutputFileAndClose(filePathName string) error
 	Output() (bytes.Buffer, error)
@@ -443,13 +446,36 @@ func (s *PdfMaroto) Text(text string, prop ...props.Text) {
 	}
 
 	cell := internal.Cell{
-		X:      s.xColOffset,
+		X:      s.xColOffset + textProp.Left,
 		Y:      s.offsetY + textProp.Top,
-		Width:  s.colWidth,
-		Height: 0,
+		Width:  s.colWidth - textProp.Left - textProp.Right,
+		Height: s.rowHeight - textProp.Top - textProp.Bottom,
 	}
 
 	s.TextHelper.Add(text, cell, textProp)
+}
+
+// CalcTextHeight estimates the height of text lines
+func (s *PdfMaroto) CalcTextHeight(width uint, text string, prop ...props.Text) float64 {
+	var textProp props.Text
+
+	if len(prop) > 0 {
+		textProp = prop[0]
+	}
+
+	textProp.MakeValid(s.defaultFontFamily)
+
+	if width == 0 {
+		width = uint(consts.MaxGridSum)
+	}
+
+	percent := float64(width) / consts.MaxGridSum
+
+	pageWidth, _ := s.Pdf.GetPageSize()
+	left, _, right, _ := s.Pdf.GetMargins()
+	widthPerCol := (pageWidth-right-left)*percent - textProp.Left - textProp.Right
+
+	return textProp.Top + textProp.Bottom + s.TextHelper.GetTextHeight(text, textProp, widthPerCol)
 }
 
 // FileImage add an Image reading from disk inside a cell.

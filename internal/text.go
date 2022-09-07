@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"strings"
-
 	"github.com/tracmo/maroto/internal/fpdf"
 	"github.com/tracmo/maroto/pkg/consts"
 	"github.com/tracmo/maroto/pkg/props"
@@ -12,6 +10,7 @@ import (
 type Text interface {
 	Add(text string, cell Cell, textProp props.Text)
 	GetLinesQuantity(text string, fontFamily props.Text, colWidth float64) int
+	GetTextHeight(text string, textProp props.Text, colWidth float64) float64
 }
 
 type text struct {
@@ -36,30 +35,25 @@ func (s *text) Add(text string, cell Cell, textProp props.Text) {
 	originalColor := s.font.GetColor()
 	s.font.SetColor(textProp.Color)
 
-	// duplicated
 	_, _, fontSize := s.font.GetFont()
 	fontHeight := fontSize / s.font.GetScaleFactor()
 
 	cell.Y += fontHeight
 
 	// Apply Unicode before calc spaces
-	unicodeText := s.textToUnicode(text, textProp)
-	stringWidth := s.pdf.GetStringWidth(unicodeText)
-	words := strings.Split(unicodeText, " ")
+	stringWidth := s.pdf.GetStringWidth(text)
 	accumulateOffsetY := 0.0
 
 	// If should add one line
-	if stringWidth < cell.Width || textProp.Extrapolate || len(words) == 1 {
-		s.addLine(textProp, cell.X, cell.Width, cell.Y, stringWidth, unicodeText)
+	if textProp.Extrapolate {
+		s.addLine(textProp, cell.X, cell.Width, cell.Y, stringWidth, text)
 	} else {
-		lines := s.getLines(words, cell.Width)
+		lines := s.getLines(text, cell.Width)
 
 		for index, line := range lines {
 			lineWidth := s.pdf.GetStringWidth(line)
-			_, _, fontSize := s.font.GetFont()
-			textHeight := fontSize / s.font.GetScaleFactor()
 
-			s.addLine(textProp, cell.X, cell.Width, cell.Y+float64(index)*textHeight+accumulateOffsetY, lineWidth, line)
+			s.addLine(textProp, cell.X, cell.Width, cell.Y+float64(index)*fontHeight+accumulateOffsetY, lineWidth, line)
 			accumulateOffsetY += textProp.VerticalPadding
 		}
 	}
@@ -69,41 +63,103 @@ func (s *text) Add(text string, cell Cell, textProp props.Text) {
 
 // GetLinesQuantity retrieve the quantity of lines which a text will occupy to avoid that text to extrapolate a cell.
 func (s *text) GetLinesQuantity(text string, textProp props.Text, colWidth float64) int {
-	translator := s.pdf.UnicodeTranslatorFromDescriptor("")
-	s.font.SetFont(textProp.Family, textProp.Style, textProp.Size)
-
-	// Apply Unicode.
-	textTranslated := translator(text)
-
-	stringWidth := s.pdf.GetStringWidth(textTranslated)
-	words := strings.Split(textTranslated, " ")
-
 	// If should add one line.
-	if stringWidth < colWidth || textProp.Extrapolate || len(words) == 1 {
+	if textProp.Extrapolate {
 		return 1
 	}
 
-	lines := s.getLines(words, colWidth)
+	s.font.SetFont(textProp.Family, textProp.Style, textProp.Size)
+
+	lines := s.getLines(text, colWidth)
 	return len(lines)
 }
 
-func (s *text) getLines(words []string, colWidth float64) []string {
-	currentlySize := 0.0
-	actualLine := 0
+// GetTextHeight calculate the height of lines with text
+func (s *text) GetTextHeight(text string, textProp props.Text, colWidth float64) float64 {
+	s.font.SetFont(textProp.Family, textProp.Style, textProp.Size)
+
+	_, _, fontSize := s.font.GetFont()
+	fontHeight := fontSize / s.font.GetScaleFactor()
+
+	// If should add one line
+	if textProp.Extrapolate {
+		return fontHeight
+	}
+
+	lines := s.getLines(text, colWidth)
+	numLines := float64(len(lines))
+
+	return (numLines * fontHeight) + ((numLines - 1) * textProp.VerticalPadding)
+}
+
+func (s *text) getLines(unicodeText string, colWidth float64) []string {
 
 	lines := []string{}
-	lines = append(lines, "")
+	oneLine := []rune{}
+	currentlySize := 0.0
+	lineHasSpace := -1   // the position of the last space in one line
+	lineSpaceSize := 0.0 // the line size with last space
 
-	for _, word := range words {
-		if s.pdf.GetStringWidth(word+" ")+currentlySize < colWidth {
-			lines[actualLine] = lines[actualLine] + word + " "
-			currentlySize += s.pdf.GetStringWidth(word + " ")
-		} else {
-			lines = append(lines, "")
-			actualLine++
-			lines[actualLine] = lines[actualLine] + word + " "
-			currentlySize = s.pdf.GetStringWidth(word + " ")
+	for _, oneRune := range unicodeText {
+		if oneRune == '\n' {
+			lines = append(lines, string(oneLine))
+			oneLine = []rune{}
+			currentlySize = 0
+			lineHasSpace = -1
+			lineSpaceSize = 0.0
+			continue
 		}
+
+		runeWidth := s.pdf.GetStringWidth(string(oneRune))
+		if runeWidth+currentlySize < colWidth {
+			// add the rune into the current line
+			if oneRune == ' ' || oneRune == '\t' {
+				// trace the position of last space rune in one line
+				lineHasSpace = len(oneLine)
+				lineSpaceSize = currentlySize + runeWidth
+			}
+
+			oneLine = append(oneLine, oneRune)
+			currentlySize += runeWidth
+		} else {
+			// split into another new line
+			if lineHasSpace < 1 {
+				// no space or just prefix space in the line, do nothing
+				// assert lineHasSpace == -1 && lineSpaceSize == 0.0
+				lines = append(lines, string(oneLine))
+				if oneRune == ' ' || oneRune == '\t' {
+					// remove prefix with spaces
+					oneLine = []rune{}
+					currentlySize = 0
+				} else {
+					oneLine = []rune{oneRune}
+					currentlySize = runeWidth
+				}
+			} else {
+				// split current with space
+				lines = append(lines, string(oneLine[:lineHasSpace]))
+
+				// trim prefix space into a new line
+				oneLine = oneLine[lineHasSpace+1:]
+				currentlySize = currentlySize - lineSpaceSize
+
+				// add the rune into new line
+				if oneRune == ' ' || oneRune == '\t' {
+					// trace the position of last space rune in one line
+					lineHasSpace = len(oneLine)
+					lineSpaceSize = currentlySize + runeWidth
+				} else {
+					lineHasSpace = -1
+					lineSpaceSize = 0.0
+				}
+
+				oneLine = append(oneLine, oneRune)
+				currentlySize += runeWidth
+			}
+		}
+	}
+	if len(oneLine) > 0 {
+		lines = append(lines, string(oneLine))
 	}
 
 	return lines

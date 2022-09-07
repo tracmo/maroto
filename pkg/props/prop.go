@@ -46,8 +46,14 @@ type Rect struct {
 
 // Text represents properties from a Text inside a cell.
 type Text struct {
-	// Top is space between the upper cell limit to the barcode, if align is not center.
+	// Left is the space/margin between the left cell boundary to the rectangle, if center is false.
+	Left float64
+	// Right is the space/margin between the left cell boundary to the rectangle, if center is false.
+	Right float64
+	// Top is space between the upper cell limit to the rectangle, if align is not center.
 	Top float64
+	// Bottom is space between the bottom cell limit to the rectangle, if align is not center.
+	Bottom float64
 	// Family of the text, ex: consts.Arial, helvetica and etc.
 	Family string
 	// Style of the text, ex: consts.Normal, bold and etc.
@@ -216,8 +222,18 @@ func (s *Text) MakeValid(defaultFamily string) {
 		s.Size = 10.0
 	}
 
+	if s.Left < minValue {
+		s.Left = minValue
+	}
+	if s.Right < minValue {
+		s.Right = minValue
+	}
+
 	if s.Top < minValue {
 		s.Top = minValue
+	}
+	if s.Bottom < minValue {
+		s.Bottom = minValue
 	}
 
 	if s.VerticalPadding < 0 {
