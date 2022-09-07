@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/johnfercher/maroto/internal"
-	"github.com/johnfercher/maroto/pkg/color"
+	"github.com/tracmo/maroto/internal"
+	"github.com/tracmo/maroto/pkg/color"
 
-	"github.com/johnfercher/maroto/internal/mocks"
-	"github.com/johnfercher/maroto/pkg/consts"
-	"github.com/johnfercher/maroto/pkg/pdf"
-	"github.com/johnfercher/maroto/pkg/props"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/tracmo/maroto/internal/mocks"
+	"github.com/tracmo/maroto/pkg/consts"
+	"github.com/tracmo/maroto/pkg/pdf"
+	"github.com/tracmo/maroto/pkg/props"
 )
 
 func TestNewPdf(t *testing.T) {

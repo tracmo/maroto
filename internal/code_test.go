@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/johnfercher/maroto/internal"
-	"github.com/johnfercher/maroto/internal/mocks"
-	"github.com/johnfercher/maroto/pkg/props"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/tracmo/maroto/internal"
+	"github.com/tracmo/maroto/internal/mocks"
+	"github.com/tracmo/maroto/pkg/props"
 )
 
 func TestNewCode(t *testing.T) {

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/johnfercher/maroto/internal"
-	"github.com/johnfercher/maroto/internal/mocks"
-	"github.com/johnfercher/maroto/pkg/color"
-	"github.com/johnfercher/maroto/pkg/consts"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"github.com/tracmo/o/internal"
+	"github.com/tracmo/o/internal/mocks"
+	"github.com/tracmo/o/pkg/color"
+	"github.com/tracmo/o/pkg/consts"
+	"github.com/tracmo/tify/assert"
+	"github.com/tracmo/tify/mock"
 )
 
 func TestNewFont(t *testing.T) {
