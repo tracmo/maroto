@@ -45,6 +45,8 @@ type Maroto interface {
 
 	// New Helper by JL
 	CalcTextHeight(width uint, text string, prop ...props.Text) float64
+	SetMaxGridSum(sum uint)
+	GetMaxGridSum() (sum float64)
 
 	// File System
 	OutputFileAndClose(filePathName string) error
@@ -92,6 +94,7 @@ type PdfMaroto struct {
 	footerClosure func()
 
 	// Computed values.
+	maxGridSum                float64
 	pageIndex                 int
 	offsetY                   float64
 	rowHeight                 float64
@@ -158,6 +161,7 @@ func NewMarotoCustomSize(orientation consts.Orientation, pageSize consts.PageSiz
 		calculationMode:   false,
 		backgroundColor:   color.NewWhite(),
 		defaultFontFamily: consts.Arial,
+		maxGridSum:        consts.MaxGridSum,
 	}
 
 	maroto.TableListHelper.BindGrid(maroto)
@@ -188,7 +192,7 @@ func (s *PdfMaroto) AddPage() {
 	maxOffsetPage := (pageHeight - bottom - top)
 
 	s.Row(maxOffsetPage-totalOffsetY, func() {
-		s.ColSpace(uint(consts.MaxGridSum))
+		s.ColSpace(uint(s.maxGridSum))
 	})
 }
 
@@ -402,10 +406,10 @@ func (s *PdfMaroto) Row(height float64, closure func()) {
 // columns or rows inside columns.
 func (s *PdfMaroto) Col(width uint, closure func()) {
 	if width == 0 {
-		width = uint(consts.MaxGridSum)
+		width = uint(s.maxGridSum)
 	}
 
-	percent := float64(width) / consts.MaxGridSum
+	percent := float64(width) / s.maxGridSum
 
 	pageWidth, _ := s.Pdf.GetPageSize()
 	left, _, right, _ := s.Pdf.GetMargins()
@@ -466,16 +470,28 @@ func (s *PdfMaroto) CalcTextHeight(width uint, text string, prop ...props.Text) 
 	textProp.MakeValid(s.defaultFontFamily)
 
 	if width == 0 {
-		width = uint(consts.MaxGridSum)
+		width = uint(s.maxGridSum)
 	}
 
-	percent := float64(width) / consts.MaxGridSum
+	percent := float64(width) / s.maxGridSum
 
 	pageWidth, _ := s.Pdf.GetPageSize()
 	left, _, right, _ := s.Pdf.GetMargins()
 	widthPerCol := (pageWidth-right-left)*percent - textProp.Left - textProp.Right
 
 	return textProp.Top + textProp.Bottom + s.TextHelper.GetTextHeight(text, textProp, widthPerCol)
+}
+
+// SetMaxGridSum overrides default MaxGridSum(12)
+// the new MaxGridSum will affect all PDF pages, except tablelist.
+func (s *PdfMaroto) SetMaxGridSum(sum uint) {
+	s.maxGridSum = float64(sum)
+}
+
+// GetMaxGridSum returns the set MaxGridSum.
+// Default MaxGridSum is 12.0.
+func (s *PdfMaroto) GetMaxGridSum() (sum float64) {
+	return s.maxGridSum
 }
 
 // FileImage add an Image reading from disk inside a cell.
@@ -659,7 +675,7 @@ func (s *PdfMaroto) footer() {
 	maxOffsetPage := (pageHeight - bottom - top)
 
 	s.Row(maxOffsetPage-totalOffsetY, func() {
-		s.ColSpace(uint(consts.MaxGridSum))
+		s.ColSpace(uint(s.maxGridSum))
 	})
 
 	if s.footerClosure != nil {
@@ -674,7 +690,7 @@ func (s *PdfMaroto) header() {
 	s.SetBackgroundColor(color.NewWhite())
 
 	s.Row(s.marginTop, func() {
-		s.ColSpace(uint(consts.MaxGridSum))
+		s.ColSpace(uint(s.maxGridSum))
 	})
 
 	if s.headerClosure != nil {

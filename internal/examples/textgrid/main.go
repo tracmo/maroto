@@ -13,6 +13,7 @@ func main() {
 	begin := time.Now()
 	m := pdf.NewMaroto(consts.Portrait, consts.Letter)
 	m.SetBorder(true)
+	m.SetMaxGridSum(36)
 
 	m.Row(40, func() {
 		m.Col(2, func() {
