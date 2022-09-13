@@ -22,6 +22,7 @@ type MarotoGridPart interface {
 	GetCurrentOffset() float64
 	GetPageSize() (width float64, height float64)
 	GetPageMargins() (left float64, top float64, right float64, bottom float64)
+	GetMaxGridSum() (sum float64)
 
 	// Outside Col/Row Components.
 	Line(spaceHeight float64, line ...props.Line)
@@ -72,7 +73,7 @@ func (s *tableList) Create(header []string, contents [][]string, defaultFontFami
 		tableProp = prop[0]
 	}
 
-	tableProp.MakeValid(header, defaultFontFamily)
+	tableProp.MakeValid(header, defaultFontFamily, s.pdf.GetMaxGridSum())
 	headerHeight := s.calcLinesHeight(header, tableProp.HeaderProp, tableProp.Align)
 
 	// Draw header.
@@ -122,7 +123,7 @@ func (s *tableList) Create(header []string, contents [][]string, defaultFontFami
 }
 
 func (s *tableList) calcLinesHeight(textList []string, contentProp props.TableListContent, align consts.Align) float64 {
-	maxLines := 1.0
+	var maxHeight float64
 
 	left, _, right, _ := s.pdf.GetPageMargins()
 	width, _ := s.pdf.GetPageSize()
@@ -132,18 +133,14 @@ func (s *tableList) calcLinesHeight(textList []string, contentProp props.TableLi
 
 	for i, text := range textList {
 		gridSize := float64(contentProp.GridSizes[i])
-		percentSize := gridSize / consts.MaxGridSum
+		percentSize := gridSize / s.pdf.GetMaxGridSum()
 		colWidth := usefulWidth * percentSize
-		qtdLines := float64(s.text.GetLinesQuantity(text, textProp, colWidth))
-		if qtdLines > maxLines {
-			maxLines = qtdLines
+		textHeight := s.text.GetTextHeight(text, textProp, colWidth)
+
+		if textHeight > maxHeight {
+			maxHeight = textHeight
 		}
 	}
 
-	_, _, fontSize := s.font.GetFont()
-
-	// Font size corrected by the scale factor from "mm" inside gofpdf f.k.
-	fontHeight := fontSize / s.font.GetScaleFactor()
-
-	return fontHeight * maxLines
+	return maxHeight
 }

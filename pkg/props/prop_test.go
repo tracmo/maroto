@@ -410,7 +410,7 @@ func TestTableListProp_MakeValid(t *testing.T) {
 
 	for _, c := range cases {
 		// Act
-		c.tableListProp.MakeValid([]string{"a", "b", "c"}, consts.Arial)
+		c.tableListProp.MakeValid([]string{"a", "b", "c"}, consts.Arial, consts.MaxGridSum)
 
 		// Assert
 		c.assert(t, c.tableListProp)

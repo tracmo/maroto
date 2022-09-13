@@ -43,11 +43,6 @@ type Maroto interface {
 	DataMatrixCode(code string, prop ...props.Rect)
 	Signature(label string, prop ...props.Font)
 
-	// New Helper by JL
-	CalcTextHeight(width uint, text string, prop ...props.Text) float64
-	SetMaxGridSum(sum uint)
-	GetMaxGridSum() (sum float64)
-
 	// File System
 	OutputFileAndClose(filePathName string) error
 	Output() (bytes.Buffer, error)
@@ -72,6 +67,11 @@ type Maroto interface {
 	SetProtection(actionFlag byte, userPassStr, ownerPassStr string)
 	SetDefaultFontFamily(fontFamily string)
 	GetDefaultFontFamily() string
+
+	// New Helper provided by Tracmo
+	CalcTextHeight(width uint, text string, prop ...props.Text) float64
+	SetMaxGridSum(sum uint)
+	GetMaxGridSum() (sum float64)
 }
 
 // PdfMaroto is the principal structure which implements Maroto abstraction.
@@ -459,41 +459,6 @@ func (s *PdfMaroto) Text(text string, prop ...props.Text) {
 	s.TextHelper.Add(text, cell, textProp)
 }
 
-// CalcTextHeight estimates the height of text lines
-func (s *PdfMaroto) CalcTextHeight(width uint, text string, prop ...props.Text) float64 {
-	var textProp props.Text
-
-	if len(prop) > 0 {
-		textProp = prop[0]
-	}
-
-	textProp.MakeValid(s.defaultFontFamily)
-
-	if width == 0 {
-		width = uint(s.maxGridSum)
-	}
-
-	percent := float64(width) / s.maxGridSum
-
-	pageWidth, _ := s.Pdf.GetPageSize()
-	left, _, right, _ := s.Pdf.GetMargins()
-	widthPerCol := (pageWidth-right-left)*percent - textProp.Left - textProp.Right
-
-	return textProp.Top + textProp.Bottom + s.TextHelper.GetTextHeight(text, textProp, widthPerCol)
-}
-
-// SetMaxGridSum overrides default MaxGridSum(12)
-// the new MaxGridSum will affect all PDF pages, except tablelist.
-func (s *PdfMaroto) SetMaxGridSum(sum uint) {
-	s.maxGridSum = float64(sum)
-}
-
-// GetMaxGridSum returns the set MaxGridSum.
-// Default MaxGridSum is 12.0.
-func (s *PdfMaroto) GetMaxGridSum() (sum float64) {
-	return s.maxGridSum
-}
-
 // FileImage add an Image reading from disk inside a cell.
 // Defining Image properties.
 func (s *PdfMaroto) FileImage(filePathName string, prop ...props.Rect) error {
@@ -654,7 +619,7 @@ func (s *PdfMaroto) drawLastFooter() {
 			maxOffsetPage := (pageHeight - bottom - top)
 
 			s.Row(maxOffsetPage-totalOffsetY, func() {
-				s.ColSpace(12)
+				s.ColSpace(uint(s.maxGridSum))
 			})
 
 			s.headerFooterContextActive = true
@@ -698,4 +663,41 @@ func (s *PdfMaroto) header() {
 	}
 
 	s.SetBackgroundColor(backgroundColor)
+}
+
+// New Helper provided by Tracmo
+
+// CalcTextHeight estimates the height of text lines in Text component.
+func (s *PdfMaroto) CalcTextHeight(width uint, text string, prop ...props.Text) float64 {
+	var textProp props.Text
+
+	if len(prop) > 0 {
+		textProp = prop[0]
+	}
+
+	textProp.MakeValid(s.defaultFontFamily)
+
+	if width == 0 {
+		width = uint(s.maxGridSum)
+	}
+
+	percent := float64(width) / s.maxGridSum
+
+	pageWidth, _ := s.Pdf.GetPageSize()
+	left, _, right, _ := s.Pdf.GetMargins()
+	widthPerCol := (pageWidth-right-left)*percent - textProp.Left - textProp.Right
+
+	return textProp.Top + textProp.Bottom + s.TextHelper.GetTextHeight(text, textProp, widthPerCol)
+}
+
+// SetMaxGridSum overrides default MaxGridSum(12)
+// the new MaxGridSum will affect all PDF pages.
+func (s *PdfMaroto) SetMaxGridSum(sum uint) {
+	s.maxGridSum = float64(sum)
+}
+
+// GetMaxGridSum returns the set MaxGridSum.
+// Default MaxGridSum is 12.0.
+func (s *PdfMaroto) GetMaxGridSum() (sum float64) {
+	return s.maxGridSum
 }

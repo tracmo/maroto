@@ -295,7 +295,7 @@ func (s *TableListContent) ToTextProp(align consts.Align, top float64, extrapola
 }
 
 // MakeValid from TableList define default values for a TableList.
-func (s *TableList) MakeValid(header []string, defaultFamily string) {
+func (s *TableList) MakeValid(header []string, defaultFamily string, maxGridSum float64) {
 	zeroValue := 0.0
 	if s.HeaderProp.Size == zeroValue {
 		s.HeaderProp.Size = 10.0
@@ -310,7 +310,7 @@ func (s *TableList) MakeValid(header []string, defaultFamily string) {
 	}
 
 	if len(s.HeaderProp.GridSizes) == 0 {
-		gridSize := uint(consts.MaxGridSum / float64(len(header)))
+		gridSize := uint(maxGridSum / float64(len(header)))
 		s.HeaderProp.GridSizes = []uint{}
 
 		for range header {
@@ -335,7 +335,7 @@ func (s *TableList) MakeValid(header []string, defaultFamily string) {
 	}
 
 	if len(s.ContentProp.GridSizes) == 0 {
-		gridSize := uint(consts.MaxGridSum / float64(len(header)))
+		gridSize := uint(maxGridSum / float64(len(header)))
 		s.ContentProp.GridSizes = []uint{}
 
 		for range header {

@@ -752,3 +752,49 @@ func ExamplePdfMaroto_SetCompression() {
 
 	// Do more things and save...
 }
+
+// ExamplePdfMaroto_CalcTextHeight demonstrates how to disable compression
+func ExamplePdfMaroto_CalcTextHeight() {
+	text := "中文超級無敵長的字串，試試看是否能夠處理呢？ Any string with long long words like, abcdefghijklmnopqrstuvwxyz1234567890"
+	textProp := props.Text{Size: 18}
+
+	m := pdf.NewMaroto(consts.Portrait, consts.A4)
+
+	rowHeight := m.CalcTextHeight(4, text, textProp)
+
+	m.Row(rowHeight, func() {
+		m.Col(4, func() {
+			m.Text(text, textProp)
+		})
+		m.ColSpace(8)
+	})
+
+	// Do more things and save...
+}
+
+// ExamplePdfMaroto_CalcTextHeight demonstrates how to setup the setting of the maximum of grid column sum.
+func ExamplePdfMaroto_SetMaxGridSum() {
+	m := pdf.NewMaroto(consts.Portrait, consts.A4)
+
+	m.SetMaxGridSum(36)
+
+	m.Row(40, func() {
+		m.Col(2, func() {
+			m.Text("Any Text1")
+		})
+		m.Col(4, func() {
+			m.Text("Any Text2")
+		})
+		m.Col(6, func() {
+			m.Text("Any Text3")
+		})
+		m.Col(10, func() {
+			m.Text("Any Text4")
+		})
+		m.Col(14, func() {
+			m.Text("Any Text5")
+		})
+	})
+
+	// Do more things and save...
+}
