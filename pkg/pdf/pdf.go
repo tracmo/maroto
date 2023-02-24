@@ -639,7 +639,8 @@ func (s *PdfMaroto) footer() {
 	totalOffsetY := (s.offsetY + s.footerHeight)
 	maxOffsetPage := (pageHeight - bottom - top)
 
-	s.Row(maxOffsetPage-totalOffsetY, func() {
+	// reserve the space between the footer and offsetY, reduce one more(0.001) to avoid floating overflow
+	s.Row(maxOffsetPage-totalOffsetY-float64(0.001), func() {
 		s.ColSpace(uint(s.maxGridSum))
 	})
 
