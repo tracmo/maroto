@@ -636,13 +636,15 @@ func (s *PdfMaroto) footer() {
 	_, pageHeight := s.Pdf.GetPageSize()
 	_, top, _, bottom := s.Pdf.GetMargins()
 
-	totalOffsetY := (s.offsetY + s.footerHeight)
+	totalOffsetY := (s.offsetY + s.footerHeight + float64(0.00001))
 	maxOffsetPage := (pageHeight - bottom - top)
 
-	// reserve the space between the footer and offsetY, reduce one more(0.001) to avoid floating overflow
-	s.Row(maxOffsetPage-totalOffsetY-float64(0.001), func() {
-		s.ColSpace(uint(s.maxGridSum))
-	})
+	if maxOffsetPage > totalOffsetY {
+		// reserve the space between the footer and offsetY, reduce one more(0.001) to avoid floating overflow
+		s.Row(maxOffsetPage-totalOffsetY, func() {
+			s.ColSpace(uint(s.maxGridSum))
+		})
+	}
 
 	if s.footerClosure != nil {
 		s.footerClosure()
