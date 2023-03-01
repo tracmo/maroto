@@ -17,6 +17,8 @@ const (
 	defaultLeftMargin  = 10
 	defaultRightMargin = 10
 	defaultFontSize    = 16
+	// reserve the space between the footer and offsetY, reduce one more(0.001) to avoid floating overflow
+	reservedFloatSP = float64(0.0000000000001)
 )
 
 // Maroto is the principal abstraction to create a PDF document.
@@ -188,12 +190,20 @@ func (s *PdfMaroto) AddPage() {
 	_, pageHeight := s.Pdf.GetPageSize()
 	_, top, _, bottom := s.Pdf.GetMargins()
 
-	totalOffsetY := (s.offsetY + s.footerHeight)
+	totalOffsetY := (s.offsetY + s.footerHeight + reservedFloatSP)
 	maxOffsetPage := (pageHeight - bottom - top)
+	// JL-debugging
+	// fmt.Printf("[AddPage] y0=%v,fh=%v,ty=%v;sp=%v\n",
+	// 	s.offsetY, s.footerHeight, totalOffsetY,
+	// 	maxOffsetPage-totalOffsetY,
+	// )
+	// JL-debugging
 
-	s.Row(maxOffsetPage-totalOffsetY, func() {
-		s.ColSpace(uint(s.maxGridSum))
-	})
+	if totalOffsetY < maxOffsetPage {
+		s.Row(maxOffsetPage-totalOffsetY, func() {
+			s.ColSpace(uint(s.maxGridSum))
+		})
+	}
 }
 
 // RegisterHeader define a sequence of Rows, Lines ou TableLists
@@ -365,6 +375,14 @@ func (s *PdfMaroto) Row(height float64, closure func()) {
 
 	totalOffsetY := (s.offsetY + height + s.footerHeight)
 	maxOffsetPage := (pageHeight - bottom - top)
+
+	// JL-debugging
+	// fmt.Printf("[row] y0=%v,h=%v,ty=%v;mp=%v;np=%v,fc=%v\n",
+	// 	s.offsetY, height, totalOffsetY,
+	// 	maxOffsetPage,
+	// 	s.GetCurrentPage(), s.headerFooterContextActive,
+	// )
+	// JL-debugging
 
 	// Note: The headerFooterContextActive is needed to avoid recursive
 	// calls without end, because footerClosure and headerClosure actually
@@ -614,18 +632,23 @@ func (s *PdfMaroto) drawLastFooter() {
 		_, pageHeight := s.Pdf.GetPageSize()
 		_, top, _, bottom := s.Pdf.GetMargins()
 
-		if s.offsetY+s.footerHeight < pageHeight-bottom-top {
-			totalOffsetY := (s.offsetY + s.footerHeight)
-			maxOffsetPage := (pageHeight - bottom - top)
-
+		totalOffsetY := (s.offsetY + s.footerHeight + reservedFloatSP)
+		maxOffsetPage := (pageHeight - bottom - top)
+		// JL-debugging
+		// fmt.Printf("[drawLastFooter] y0=%v,fh=%v,ty=%v;sp=%v\n",
+		// 	s.offsetY, s.footerHeight, totalOffsetY,
+		// 	maxOffsetPage-totalOffsetY,
+		// )
+		// JL-debugging
+		if totalOffsetY < maxOffsetPage {
 			s.Row(maxOffsetPage-totalOffsetY, func() {
 				s.ColSpace(uint(s.maxGridSum))
 			})
-
-			s.headerFooterContextActive = true
-			s.footerClosure()
-			s.headerFooterContextActive = false
 		}
+
+		s.headerFooterContextActive = true
+		s.footerClosure()
+		s.headerFooterContextActive = false
 	}
 }
 
@@ -636,11 +659,17 @@ func (s *PdfMaroto) footer() {
 	_, pageHeight := s.Pdf.GetPageSize()
 	_, top, _, bottom := s.Pdf.GetMargins()
 
-	totalOffsetY := (s.offsetY + s.footerHeight + float64(0.00001))
+	// reserve the space between the footer and offsetY, reduce one more(0.001) to avoid floating overflow
+	totalOffsetY := (s.offsetY + s.footerHeight + reservedFloatSP)
 	maxOffsetPage := (pageHeight - bottom - top)
-
-	if maxOffsetPage > totalOffsetY {
-		// reserve the space between the footer and offsetY, reduce one more(0.001) to avoid floating overflow
+	// JL-debugging
+	// fmt.Printf("[footer] y0=%v,fh=%v,ty=%v;ph=%v,bt=%v,tp=%v,mh=%v;sp=%v\n",
+	// 	s.offsetY, s.footerHeight, totalOffsetY,
+	// 	pageHeight, bottom, top, pageHeight-bottom,
+	// 	maxOffsetPage-totalOffsetY,
+	// )
+	// JL-debugging
+	if totalOffsetY < maxOffsetPage {
 		s.Row(maxOffsetPage-totalOffsetY, func() {
 			s.ColSpace(uint(s.maxGridSum))
 		})
